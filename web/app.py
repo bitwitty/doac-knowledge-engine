@@ -31,7 +31,7 @@ def _call_claude(prompt: str, max_tokens: int = 500) -> str:
         data=payload,
         headers={
             "Content-Type":      "application/json",
-            "x-api-key":         os.getenv("ANTHROPIC_API_KEY", ""),
+            "x-api-key":         os.getenv("ANTHROPIC_API_KEY", "").strip(),
             "anthropic-version": "2023-06-01",
         },
         method="POST",

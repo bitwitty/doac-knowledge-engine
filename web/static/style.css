@@ -512,11 +512,19 @@ body.has-results .results-wrap {
 .results-footer {
   max-width: var(--max-w);
   margin: 3rem auto 0;
-  padding: 1.5rem 1.5rem 0;
+  padding: 1.5rem 1.5rem 2rem;
   border-top: 1px solid var(--border);
   font-size: 0.73rem;
   color: var(--text-muted);
   letter-spacing: 0.03em;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.footer-disclaimer {
+  color: var(--text-muted);
+  opacity: 0.6;
 }
 
 /* ---- MOBILE ---- */

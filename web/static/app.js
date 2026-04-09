@@ -43,11 +43,16 @@ backBtn.addEventListener("click", () => {
 allPills.forEach(pill => {
   pill.addEventListener("click", () => {
     const topic = pill.dataset.topic;
-    activeTopic = activeTopic === topic ? "" : topic;
+    const isActive = activeTopic === topic;
+    activeTopic = isActive ? "" : topic;
     syncPills();
 
-    if (body.classList.contains("has-results") && currentQuery) {
+    if (body.classList.contains("has-results")) {
+      // In results view: re-run current search with new filter
       doSearch(currentQuery);
+    } else if (activeTopic) {
+      // On landing: clicking a pill triggers a browse of that topic
+      triggerSearch(activeTopic);
     }
   });
 });

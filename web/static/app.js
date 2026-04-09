@@ -130,9 +130,9 @@ async function streamSynthesis(query, results) {
       .join("");
 
     card.querySelector(".loading-dots").remove();
-  } catch {
+  } catch (err) {
     card.querySelector(".loading-dots").remove();
-    bodyEl.textContent = "Synthesis unavailable.";
+    bodyEl.textContent = `Synthesis unavailable: ${err.message}`;
   }
 }
 

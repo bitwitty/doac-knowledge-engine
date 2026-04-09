@@ -112,7 +112,6 @@ async function streamSynthesis(query, results) {
   resultsEl.prepend(card);
 
   const bodyEl = document.getElementById("synthesis-body");
-  let buffer = "";
 
   try {
     const res = await fetch("/api/synthesize", {
@@ -121,27 +120,19 @@ async function streamSynthesis(query, results) {
       body: JSON.stringify({ query }),
     });
 
-    const reader = res.body.getReader();
-    const decoder = new TextDecoder();
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Synthesis failed");
 
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-
-      const chunk = decoder.decode(value);
-      for (const line of chunk.split("\n")) {
-        if (!line.startsWith("data: ")) continue;
-        const text = line.slice(6);
-        if (text === "[DONE]") break;
-        buffer += text;
-        bodyEl.innerHTML = buffer;
-      }
-    }
+    // Render paragraphs
+    bodyEl.innerHTML = data.synthesis
+      .split(/\n\n+/)
+      .map(p => `<p>${esc(p.trim())}</p>`)
+      .join("");
 
     card.querySelector(".loading-dots").remove();
   } catch {
     card.querySelector(".loading-dots").remove();
-    if (!buffer) bodyEl.textContent = "Synthesis unavailable.";
+    bodyEl.textContent = "Synthesis unavailable.";
   }
 }
 

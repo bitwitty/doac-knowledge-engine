@@ -3,7 +3,7 @@ from pathlib import Path
 from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
 
 import anthropic
-from flask import Flask, render_template, request, jsonify, Response, stream_with_context
+from flask import Flask, render_template, request, jsonify
 import voyageai
 from pinecone import Pinecone
 from dotenv import load_dotenv
@@ -111,7 +111,7 @@ def search():
 
 @app.route("/api/synthesize", methods=["POST"])
 def synthesize():
-    """Stream a Claude synthesis over SSE given a query + topic."""
+    """Return a Claude synthesis as plain JSON."""
     data  = request.get_json() or {}
     query = data.get("query", "").strip()
     topic = data.get("topic", "")
@@ -127,29 +127,23 @@ def synthesize():
     if not results:
         return jsonify({"error": "No results to synthesize"}), 404
 
-    # Build context block from top 6 results
     context = "\n\n".join(
         f"[{r['guest']} — {r['episode_title']}]\n{r['text']}"
         for r in results[:6]
     )
     prompt = SYNTHESIS_PROMPT.format(query=query, context=context)
 
-    def generate():
-        with _claude.messages.stream(
+    try:
+        message = _claude.messages.create(
             model="claude-haiku-4-5-20251001",
             max_tokens=500,
             messages=[{"role": "user", "content": prompt}],
-        ) as stream:
-            for text in stream.text_stream:
-                # Server-Sent Events format
-                yield f"data: {text.replace(chr(10), '<br>')}\n\n"
-        yield "data: [DONE]\n\n"
+        )
+        synthesis = message.content[0].text.strip()
+    except Exception as e:
+        return jsonify({"error": f"Synthesis failed: {str(e)}"}), 500
 
-    return Response(
-        stream_with_context(generate()),
-        mimetype="text/event-stream",
-        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
-    )
+    return jsonify({"synthesis": synthesis})
 
 
 if __name__ == "__main__":

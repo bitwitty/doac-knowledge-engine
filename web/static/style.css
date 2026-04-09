@@ -354,7 +354,8 @@ body.has-results .results-wrap {
   min-height: 1.8rem;
 }
 
-.synthesis-body br { display: block; content: ""; margin-top: 0.75rem; }
+.synthesis-body p { margin-bottom: 0.9rem; }
+.synthesis-body p:last-child { margin-bottom: 0; }
 
 .synthesis-guests {
   display: flex;

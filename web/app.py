@@ -109,6 +109,16 @@ def search():
     return jsonify({"results": results, "query": query})
 
 
+@app.route("/api/health")
+def health():
+    """Diagnostic endpoint — checks which API keys are loaded."""
+    key = os.getenv("ANTHROPIC_API_KEY", "")
+    return jsonify({
+        "anthropic_key_set": bool(key),
+        "anthropic_key_prefix": key[:12] + "..." if len(key) > 12 else "(empty)",
+    })
+
+
 @app.route("/api/synthesize", methods=["POST"])
 def synthesize():
     """Accept query + pre-fetched results, return a Claude synthesis."""
@@ -135,7 +145,8 @@ def synthesize():
         )
         synthesis = message.content[0].text.strip()
     except Exception as e:
-        return jsonify({"error": f"Synthesis failed: {str(e)}"}), 500
+        error_type = type(e).__name__
+        return jsonify({"error": f"Synthesis failed [{error_type}]: {str(e)}"}), 500
 
     return jsonify({"synthesis": synthesis})
 

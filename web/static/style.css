@@ -207,6 +207,45 @@ body.has-results .hero {
   color: #fff;
 }
 
+.example-questions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  margin-bottom: 2rem;
+}
+
+.example-q {
+  text-align: left;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 0.88rem;
+  font-family: var(--font-body);
+  cursor: pointer;
+  padding: 0.3rem 0;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  transition: color 0.15s;
+}
+
+.example-q::before {
+  content: "→";
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  flex-shrink: 0;
+  transition: color 0.15s, transform 0.15s;
+}
+
+.example-q:hover {
+  color: var(--text);
+}
+
+.example-q:hover::before {
+  color: var(--accent);
+  transform: translateX(3px);
+}
+
 .hero-sub {
   font-size: 0.76rem;
   color: var(--text-muted);

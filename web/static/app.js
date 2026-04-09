@@ -1,17 +1,13 @@
-/* DOAC Knowledge Engine — frontend */
+/* Knowledge Engine — frontend */
 
-let activeTopic = "";
 let currentQuery = "";
 
-const body          = document.body;
-const queryInput    = document.getElementById("query");
-const submitBtn     = document.getElementById("submit-btn");
-const backBtn       = document.getElementById("back-btn");
-const resultsEl     = document.getElementById("results");
-const queryLabel    = document.getElementById("results-query-text");
-const landingPills  = document.querySelectorAll("#pills .pill");
-const resultsPills  = document.querySelectorAll("#pills-results .pill");
-const allPills      = [...landingPills, ...resultsPills];
+const body       = document.body;
+const queryInput = document.getElementById("query");
+const submitBtn  = document.getElementById("submit-btn");
+const backBtn    = document.getElementById("back-btn");
+const resultsEl  = document.getElementById("results");
+const queryLabel = document.getElementById("results-query-text");
 
 /* ---- Auto-resize textarea ---- */
 
@@ -31,35 +27,23 @@ queryInput.addEventListener("keydown", (e) => {
 
 submitBtn.addEventListener("click", () => triggerSearch(queryInput.value.trim()));
 
+/* ---- Example questions ---- */
+
+document.querySelectorAll(".example-q").forEach(btn => {
+  btn.addEventListener("click", () => {
+    const q = btn.textContent.trim();
+    queryInput.value = q;
+    autoResize(queryInput);
+    triggerSearch(q);
+  });
+});
+
 /* ---- Back button ---- */
 
 backBtn.addEventListener("click", () => {
   body.classList.remove("has-results");
   queryInput.focus();
 });
-
-/* ---- Topic pills ---- */
-
-allPills.forEach(pill => {
-  pill.addEventListener("click", () => {
-    const topic = pill.dataset.topic;
-    const isActive = activeTopic === topic;
-    activeTopic = isActive ? "" : topic;
-    syncPills();
-
-    if (body.classList.contains("has-results")) {
-      // In results view: re-run current search with new filter
-      doSearch(currentQuery);
-    } else if (activeTopic) {
-      // On landing: clicking a pill triggers a browse of that topic
-      triggerSearch(activeTopic);
-    }
-  });
-});
-
-function syncPills() {
-  allPills.forEach(p => p.classList.toggle("active", p.dataset.topic === activeTopic));
-}
 
 /* ---- Search ---- */
 
@@ -71,7 +55,7 @@ function triggerSearch(query) {
 }
 
 async function doSearch(query) {
-  queryLabel.textContent = `"${query}"${activeTopic ? "  ·  " + activeTopic : ""}`;
+  queryLabel.textContent = `"${query}"`;
 
   resultsEl.innerHTML = `
     <div class="loading">
@@ -87,7 +71,7 @@ async function doSearch(query) {
     const res = await fetch("/api/search", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ query, topic: activeTopic }),
+      body: JSON.stringify({ query }),
     });
 
     const data = await res.json();
@@ -95,7 +79,6 @@ async function doSearch(query) {
 
     renderResults(data.results);
 
-    // Stream synthesis after results appear
     if (data.results && data.results.length > 0) {
       streamSynthesis(query, data.results);
     }
@@ -109,7 +92,6 @@ async function doSearch(query) {
 }
 
 async function streamSynthesis(query, results) {
-  // Insert synthesis card before the moment cards
   const card = document.createElement("div");
   card.className = "synthesis-card";
   card.innerHTML = `
@@ -136,7 +118,7 @@ async function streamSynthesis(query, results) {
     const res = await fetch("/api/synthesize", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ query, topic: activeTopic }),
+      body: JSON.stringify({ query }),
     });
 
     const reader = res.body.getReader();
@@ -147,8 +129,7 @@ async function streamSynthesis(query, results) {
       if (done) break;
 
       const chunk = decoder.decode(value);
-      const lines = chunk.split("\n");
-      for (const line of lines) {
+      for (const line of chunk.split("\n")) {
         if (!line.startsWith("data: ")) continue;
         const text = line.slice(6);
         if (text === "[DONE]") break;
@@ -157,7 +138,6 @@ async function streamSynthesis(query, results) {
       }
     }
 
-    // Remove loading dots when done
     card.querySelector(".loading-dots").remove();
   } catch {
     card.querySelector(".loading-dots").remove();
@@ -170,7 +150,7 @@ function renderResults(results) {
     resultsEl.innerHTML = `
       <div class="state-message">
         <h3>No moments found</h3>
-        <p>Try rephrasing your question, or clear the topic filter.</p>
+        <p>Try rephrasing your question.</p>
       </div>`;
     return;
   }
@@ -202,5 +182,4 @@ function esc(str) {
     .replace(/"/g, "&quot;");
 }
 
-/* ---- Init ---- */
 queryInput.focus();

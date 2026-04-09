@@ -41,10 +41,12 @@
           </svg>
         </button>
       </div>
-      <div class="pills" id="pills">
-        {% for topic in topics %}
-        <button class="pill" type="button" data-topic="{{ topic }}">{{ topic }}</button>
-        {% endfor %}
+      <div class="example-questions">
+        <button class="example-q" type="button">How do I stop self-sabotaging?</button>
+        <button class="example-q" type="button">What do wealthy people do differently?</button>
+        <button class="example-q" type="button">How does stress affect the body and mind?</button>
+        <button class="example-q" type="button">Why do most relationships fail?</button>
+        <button class="example-q" type="button">How do I find work I actually care about?</button>
       </div>
       <p class="hero-sub"><span class="proto-badge">Prototype</span> 30 of 815 episodes indexed &mdash; 2,501 searchable moments</p>
     </div>
@@ -59,11 +61,6 @@
         </svg>
       </button>
       <span class="results-query-text" id="results-query-text"></span>
-      <div class="pills pills-compact" id="pills-results">
-        {% for topic in topics %}
-        <button class="pill" type="button" data-topic="{{ topic }}">{{ topic }}</button>
-        {% endfor %}
-      </div>
     </div>
 
     <div id="results" class="results"></div>

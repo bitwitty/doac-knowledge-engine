@@ -1,0 +1,15 @@
+.env
+__pycache__/
+*.pyc
+.DS_Store
+node_modules/
+web/.next/
+web/.env.local
+*.vtt
+
+# Large data files — not needed for the web app (search runs via Pinecone)
+data/transcripts/
+data/cleaned_transcripts/
+data/chunks.jsonl
+data/_embeddings_cache.jsonl
+data/_youtube_channel_cache.json

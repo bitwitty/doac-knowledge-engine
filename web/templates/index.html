@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#080808">
+  <title>DOAC Knowledge Engine</title>
+  <link rel="icon" href="data:,">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+  <nav class="nav">
+    <a href="/" class="nav-brand">DOAC Knowledge Engine</a>
+    <a href="https://stevenbartlett.com/the-diary-of-a-ceo-podcast/" target="_blank" rel="noopener" class="nav-link">The Diary of a CEO ↗</a>
+  </nav>
+
+  <!-- LANDING STATE -->
+  <section class="hero" id="hero">
+    <div class="hero-inner">
+      <p class="hero-eyebrow">Explore ideas from The Diary of a CEO</p>
+      <h1 class="hero-title">What do you want<br>to understand?</h1>
+      <p class="hero-tagline">Type a question. Find the exact moment — with a link straight to YouTube.</p>
+      <div class="search-box" id="search-box">
+        <textarea
+          id="query"
+          class="query-input"
+          placeholder="How do I stop self-sabotaging?"
+          rows="1"
+          maxlength="500"
+          autocomplete="off"
+          spellcheck="false"
+        ></textarea>
+        <button class="search-submit" id="submit-btn" type="button" aria-label="Search">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24">
+            <path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+      </div>
+      <div class="pills" id="pills">
+        {% for topic in topics %}
+        <button class="pill" type="button" data-topic="{{ topic }}">{{ topic }}</button>
+        {% endfor %}
+      </div>
+      <p class="hero-sub"><span class="proto-badge">Prototype</span> 30 of 815 episodes indexed &mdash; 2,501 searchable moments</p>
+    </div>
+  </section>
+
+  <!-- RESULTS STATE -->
+  <section class="results-wrap" id="results-wrap" aria-live="polite">
+    <div class="results-query-bar">
+      <button class="back-btn" id="back-btn" type="button" aria-label="New search">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24">
+          <path d="M19 12H5M11 6l-6 6 6 6" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+      <span class="results-query-text" id="results-query-text"></span>
+      <div class="pills pills-compact" id="pills-results">
+        {% for topic in topics %}
+        <button class="pill" type="button" data-topic="{{ topic }}">{{ topic }}</button>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div id="results" class="results"></div>
+
+    <footer class="results-footer">
+      <span class="proto-badge">Prototype</span> 30 of 815 episodes indexed &mdash; imagine this at full scale
+    </footer>
+  </section>
+
+  <script>const TOPICS = {{ topics | tojson }};</script>
+  <script src="/static/app.js"></script>
+</body>
+</html>

@@ -1,8 +1,10 @@
 import os
+import json as _json
+import urllib.request
+import urllib.error
 from pathlib import Path
 from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
 
-import anthropic
 from flask import Flask, render_template, request, jsonify
 import voyageai
 from pinecone import Pinecone
@@ -15,7 +17,28 @@ app = Flask(__name__)
 _voyage  = voyageai.Client(api_key=os.getenv("VOYAGE_API_KEY"))
 _pc      = Pinecone(api_key=os.getenv("PINECONE_API_KEY"))
 _index   = _pc.Index(os.getenv("PINECONE_INDEX_NAME", "doac-knowledge-engine"))
-_claude  = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
+
+
+def _call_claude(prompt: str, max_tokens: int = 500) -> str:
+    """Call the Anthropic Messages API directly via urllib (no SDK dependency)."""
+    payload = _json.dumps({
+        "model":      "claude-haiku-4-5-20251001",
+        "max_tokens": max_tokens,
+        "messages":   [{"role": "user", "content": prompt}],
+    }).encode()
+    req = urllib.request.Request(
+        "https://api.anthropic.com/v1/messages",
+        data=payload,
+        headers={
+            "Content-Type":      "application/json",
+            "x-api-key":         os.getenv("ANTHROPIC_API_KEY", ""),
+            "anthropic-version": "2023-06-01",
+        },
+        method="POST",
+    )
+    with urllib.request.urlopen(req, timeout=30) as resp:
+        body = _json.loads(resp.read())
+    return body["content"][0]["text"].strip()
 
 TOPICS = [
     "Entrepreneurship",
@@ -111,11 +134,20 @@ def search():
 
 @app.route("/api/health")
 def health():
-    """Diagnostic endpoint — checks which API keys are loaded."""
+    """Diagnostic endpoint — checks keys and Anthropic reachability."""
     key = os.getenv("ANTHROPIC_API_KEY", "")
+    try:
+        _call_claude("Say OK", max_tokens=5)
+        claude_ok = True
+        claude_error = None
+    except Exception as e:
+        claude_ok = False
+        claude_error = f"[{type(e).__name__}] {e}"
     return jsonify({
-        "anthropic_key_set": bool(key),
+        "anthropic_key_set":    bool(key),
         "anthropic_key_prefix": key[:12] + "..." if len(key) > 12 else "(empty)",
+        "claude_reachable":     claude_ok,
+        "claude_error":         claude_error,
     })
 
 
@@ -138,12 +170,7 @@ def synthesize():
     prompt = SYNTHESIS_PROMPT.format(query=query, context=context)
 
     try:
-        message = _claude.messages.create(
-            model="claude-haiku-4-5-20251001",
-            max_tokens=500,
-            messages=[{"role": "user", "content": prompt}],
-        )
-        synthesis = message.content[0].text.strip()
+        synthesis = _call_claude(prompt)
     except Exception as e:
         error_type = type(e).__name__
         return jsonify({"error": f"Synthesis failed [{error_type}]: {str(e)}"}), 500

@@ -132,25 +132,6 @@ def search():
     return jsonify({"results": results, "query": query})
 
 
-@app.route("/api/health")
-def health():
-    """Diagnostic endpoint — checks keys and Anthropic reachability."""
-    key = os.getenv("ANTHROPIC_API_KEY", "")
-    try:
-        _call_claude("Say OK", max_tokens=5)
-        claude_ok = True
-        claude_error = None
-    except Exception as e:
-        claude_ok = False
-        claude_error = f"[{type(e).__name__}] {e}"
-    return jsonify({
-        "anthropic_key_set":    bool(key),
-        "anthropic_key_prefix": key[:12] + "..." if len(key) > 12 else "(empty)",
-        "claude_reachable":     claude_ok,
-        "claude_error":         claude_error,
-    })
-
-
 @app.route("/api/synthesize", methods=["POST"])
 def synthesize():
     """Accept query + pre-fetched results, return a Claude synthesis."""
@@ -171,9 +152,8 @@ def synthesize():
 
     try:
         synthesis = _call_claude(prompt)
-    except Exception as e:
-        error_type = type(e).__name__
-        return jsonify({"error": f"Synthesis failed [{error_type}]: {str(e)}"}), 500
+    except Exception:
+        return jsonify({"error": "Synthesis unavailable — please try again."}), 500
 
     return jsonify({"synthesis": synthesis})
 

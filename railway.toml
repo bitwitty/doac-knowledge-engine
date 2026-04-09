@@ -1,8 +1,2 @@
-[build]
-builder = "nixpacks"
-
-[build.nixpacksPlan.phases.install]
-cmds = ["pip install -r requirements-deploy.txt"]
-
 [deploy]
 startCommand = "gunicorn web.app:app --bind 0.0.0.0:$PORT"

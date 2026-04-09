@@ -15,7 +15,7 @@ app = Flask(__name__)
 _voyage  = voyageai.Client(api_key=os.getenv("VOYAGE_API_KEY"))
 _pc      = Pinecone(api_key=os.getenv("PINECONE_API_KEY"))
 _index   = _pc.Index(os.getenv("PINECONE_INDEX_NAME", "doac-knowledge-engine"))
-_claude  = anthropic.Anthropic()
+_claude  = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
 
 TOPICS = [
     "Entrepreneurship",

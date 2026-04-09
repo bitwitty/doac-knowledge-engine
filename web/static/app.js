@@ -117,13 +117,13 @@ async function streamSynthesis(query, results) {
     const res = await fetch("/api/synthesize", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ query }),
+      body: JSON.stringify({ query, results }),
     });
 
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || "Synthesis failed");
+    if (!data.synthesis) throw new Error("Empty response");
 
-    // Render paragraphs
     bodyEl.innerHTML = data.synthesis
       .split(/\n\n+/)
       .map(p => `<p>${esc(p.trim())}</p>`)

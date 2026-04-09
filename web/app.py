@@ -111,24 +111,18 @@ def search():
 
 @app.route("/api/synthesize", methods=["POST"])
 def synthesize():
-    """Return a Claude synthesis as plain JSON."""
-    data  = request.get_json() or {}
-    query = data.get("query", "").strip()
-    topic = data.get("topic", "")
+    """Accept query + pre-fetched results, return a Claude synthesis."""
+    data    = request.get_json() or {}
+    query   = data.get("query", "").strip()
+    results = data.get("results", [])
 
     if not query:
         return jsonify({"error": "Query is required"}), 400
-
-    try:
-        results = retrieve(query, topic)
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
     if not results:
-        return jsonify({"error": "No results to synthesize"}), 404
+        return jsonify({"error": "No results provided"}), 400
 
     context = "\n\n".join(
-        f"[{r['guest']} — {r['episode_title']}]\n{r['text']}"
+        f"[{r.get('guest', '')} — {r.get('episode_title', '')}]\n{r.get('text', '')}"
         for r in results[:6]
     )
     prompt = SYNTHESIS_PROMPT.format(query=query, context=context)

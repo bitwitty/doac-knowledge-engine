@@ -1,9 +1,12 @@
 import os
+import ssl
 import json as _json
 import urllib.request
 import urllib.error
 from pathlib import Path
 from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
+
+import certifi
 
 from flask import Flask, render_template, request, jsonify
 import voyageai
@@ -36,7 +39,8 @@ def _call_claude(prompt: str, max_tokens: int = 500) -> str:
         },
         method="POST",
     )
-    with urllib.request.urlopen(req, timeout=30) as resp:
+    ctx = ssl.create_default_context(cafile=certifi.where())
+    with urllib.request.urlopen(req, timeout=30, context=ctx) as resp:
         body = _json.loads(resp.read())
     return body["content"][0]["text"].strip()
 
@@ -53,17 +57,27 @@ TOPICS = [
 ]
 
 SYNTHESIS_PROMPT = """\
-You are synthesizing insights from The Diary of a CEO with Steven Bartlett.
+Synthesize insights from The Diary of a CEO with Steven Bartlett.
 
-The user asked: "{query}"
+Question: "{query}"
 
-Here are relevant moments from different episodes:
+Excerpts:
 
 {context}
 
-Write a direct, 2–3 paragraph synthesis of what these experts collectively say about this question. \
-Name specific guests when attributing ideas. Highlight where they agree and where their perspectives differ. \
-Write for someone who wants the core wisdom without having to watch the episodes — be specific, not generic."""
+Rules (follow exactly):
+- MAXIMUM 90 words. Aim for 75. Stop writing when you reach 90. This is a hard limit.
+- Two short paragraphs. No title line. Do not restate the question.
+- Every sentence must name the guest who said it. No sentence without a named guest.
+- Only attribute a point to a guest if the excerpt clearly comes from that guest's episode \
+and is not the host (Steven Bartlett) speaking. Compilation episodes ("Most Replayed Moment") \
+contain several unnamed speakers — skip any point that cannot be attributed to a named guest.
+- Never say "multiple guests", "the experts agree", "consensus", or similar unless at least \
+two named guests explicitly say the same thing in the excerpts.
+- Plain, direct sentences. No markdown. Avoid "resonates", "collective wisdom", "core message", "unified".
+- The host often states a claim or statistic and then asks a question about it. Never attribute a claim that leads into a question to the guest.
+- Don't add causes or explanations that aren't stated in the excerpt.
+- Stop after the last guest's point. Do not add a concluding or summarising sentence of your own."""
 
 
 def fmt_time(seconds: int) -> str:
@@ -85,6 +99,15 @@ def make_watch_url(youtube_url: str, seconds: int) -> str:
         return youtube_url
 
 
+GUEST_NORMALISE = {
+    "Gabor Mate": "Gabor Maté",
+}
+
+
+def _norm_guest(name: str) -> str:
+    return GUEST_NORMALISE.get(name, name)
+
+
 def retrieve(query: str, topic: str) -> tuple[list[dict], list]:
     """Embed query and search Pinecone. Returns (formatted_results, raw_chunks_for_synthesis)."""
     emb = _voyage.embed([query], model="voyage-3-large", input_type="query").embeddings[0]
@@ -98,7 +121,7 @@ def retrieve(query: str, topic: str) -> tuple[list[dict], list]:
         md = m.metadata
         start = int(md.get("start_seconds", 0))
         results.append({
-            "guest":         md.get("guest", ""),
+            "guest":         _norm_guest(md.get("guest", "")),
             "episode_title": md.get("episode_title", ""),
             "primary_topic": md.get("primary_topic", ""),
             "text":          md.get("text", ""),
@@ -151,9 +174,9 @@ def synthesize():
     prompt = SYNTHESIS_PROMPT.format(query=query, context=context)
 
     try:
-        synthesis = _call_claude(prompt)
+        synthesis = _call_claude(prompt, max_tokens=250)
     except Exception:
-        return jsonify({"error": "Synthesis unavailable — please try again."}), 500
+        return jsonify({"error": "Please try again."}), 500
 
     return jsonify({"synthesis": synthesis})
 

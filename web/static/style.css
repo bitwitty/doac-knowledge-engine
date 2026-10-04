@@ -357,6 +357,14 @@ body.has-results .results-wrap {
 .synthesis-body p { margin-bottom: 0.9rem; }
 .synthesis-body p:last-child { margin-bottom: 0; }
 
+.synthesis-disclaimer {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+  margin-top: 1rem;
+  margin-bottom: 0;
+}
+
 .synthesis-guests {
   display: flex;
   flex-wrap: wrap;
@@ -367,10 +375,10 @@ body.has-results .results-wrap {
 
 .synthesis-guest {
   font-size: 0.72rem;
-  color: var(--text-muted);
+  color: var(--text-dim);
   padding: 0.2rem 0.55rem;
   border-radius: var(--r-pill);
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-mid);
 }
 
 /* ---- MOMENT CARDS ---- */

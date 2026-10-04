@@ -104,11 +104,8 @@ async function streamSynthesis(query, results) {
       </div>
     </div>
     <div class="synthesis-body" id="synthesis-body"></div>
-    <div class="synthesis-guests">${
-      [...new Set(results.slice(0, 6).map(r => r.guest).filter(Boolean))]
-        .map(g => `<span class="synthesis-guest">${esc(g)}</span>`)
-        .join("")
-    }</div>`;
+    <p class="synthesis-disclaimer">AI summary of transcript excerpts. Transcripts don't label speakers, so check the clips before quoting.</p>
+    <div class="synthesis-guests" id="synthesis-guests"></div>`;
   resultsEl.prepend(card);
 
   const bodyEl = document.getElementById("synthesis-body");
@@ -124,9 +121,18 @@ async function streamSynthesis(query, results) {
     if (!res.ok) throw new Error(data.error || "Synthesis failed");
     if (!data.synthesis) throw new Error("Empty response");
 
-    bodyEl.innerHTML = data.synthesis
+    const synthesisText = cleanSynthesis(data.synthesis, query);
+    bodyEl.innerHTML = synthesisText
       .split(/\n\n+/)
+      .filter(p => p.trim())
       .map(p => `<p>${esc(p.trim())}</p>`)
+      .join("");
+
+    const guestsEl = document.getElementById("synthesis-guests");
+    const mentioned = [...new Set(results.slice(0, 6).map(r => displayGuest(r)).filter(g => g))]
+      .filter(g => synthesisText.includes(g));
+    guestsEl.innerHTML = mentioned
+      .map(g => `<span class="synthesis-guest">${esc(g)}</span>`)
       .join("");
 
     card.querySelector(".loading-dots").remove();
@@ -146,23 +152,25 @@ function renderResults(results) {
     return;
   }
 
-  resultsEl.innerHTML = results.map(r => `
+  resultsEl.innerHTML = results.map(r => {
+    const name = displayGuest(r);
+    return `
     <article class="moment-card">
       <div class="card-header">
         <div>
-          <p class="guest-name">${esc(r.guest || "Unknown Guest")}</p>
+          ${name ? `<p class="guest-name">${esc(name)}</p>` : ""}
           <p class="episode-title">${esc(r.episode_title)}</p>
         </div>
-        ${r.primary_topic ? `<span class="topic-badge">${esc(r.primary_topic)}</span>` : ""}
       </div>
-      <blockquote class="excerpt">${esc(r.text)}</blockquote>
+      <blockquote class="excerpt">${esc(trimExcerpt(r.text))}</blockquote>
       <div class="card-footer">
         ${r.watch_url ? `
           <a class="watch-btn" href="${esc(r.watch_url)}" target="_blank" rel="noopener">
             Watch at <span class="ts">${esc(r.timestamp)}</span> &rarr;
           </a>` : ""}
       </div>
-    </article>`).join("");
+    </article>`;
+  }).join("");
 }
 
 function esc(str) {
@@ -171,6 +179,52 @@ function esc(str) {
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
+}
+
+const _NOT_A_NAME = /\b(expert|advisor|assessment|whistleblower|lawyer|moment|experts)\b/i;
+function displayGuest(r) {
+  const g = (r.guest || "").trim();
+  // If the guest field looks like a real name, use it
+  if (g && !_NOT_A_NAME.test(g) && !/^most replayed/i.test(g)) return g;
+  // Try to extract a name from the end of the title (e.g. "…2026! James Clear")
+  const title = (r.episode_title || "").trim();
+  const m = title.match(/[!.\-–—]\s*((?:Dr\.?\s+)?[A-Z][a-z]+(?:\s+[A-Z][a-z]+){1,2})\s*$/);
+  if (m) return m[1];
+  // No name found
+  return "";
+}
+
+function stripMd(str) {
+  return String(str ?? "")
+    .replace(/^#{1,6}\s+/gm, "")       // # headings
+    .replace(/\*\*(.+?)\*\*/g, "$1")   // **bold**
+    .replace(/\*(.+?)\*/g, "$1")       // *italic*
+    .replace(/__(.+?)__/g, "$1")       // __bold__
+    .replace(/_(.+?)_/g, "$1");        // _italic_
+}
+
+function cleanSynthesis(text, query) {
+  let cleaned = stripMd(text);
+  // Drop the first line if it looks like it restates the question
+  const lines = cleaned.split("\n");
+  const first = lines[0].trim().replace(/[?.:!]+$/, "").toLowerCase();
+  const q = query.trim().replace(/[?.:!]+$/, "").toLowerCase();
+  if (first && (first === q || first.includes(q) || q.includes(first))) {
+    lines.shift();
+    cleaned = lines.join("\n").replace(/^\n+/, "");
+  }
+  return cleaned;
+}
+
+function trimExcerpt(text) {
+  // If the text already starts with an uppercase letter, it's fine
+  const t = (text || "").trim();
+  if (!t) return t;
+  if (/^[A-Z]/.test(t)) return t;
+  // Find the first sentence start (uppercase after ". " or "! " or "? ")
+  const m = t.match(/[.!?]\s+([A-Z])/);
+  if (m) return t.slice(m.index + m[0].length - 1);
+  return t;
 }
 
 queryInput.focus();

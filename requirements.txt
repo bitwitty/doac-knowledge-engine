@@ -3,3 +3,4 @@ voyageai>=0.3.2
 pinecone>=5.4.2
 python-dotenv>=1.0.1
 gunicorn>=21.0
+certifi>=2024.0
